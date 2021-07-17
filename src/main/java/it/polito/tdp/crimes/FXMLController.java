@@ -5,9 +5,13 @@
 package it.polito.tdp.crimes;
 
 import java.net.URL;
+import java.time.DateTimeException;
+import java.time.LocalDate;
 import java.util.ResourceBundle;
 
+import it.polito.tdp.crimes.model.District;
 import it.polito.tdp.crimes.model.Model;
+import it.polito.tdp.crimes.model.Vicino;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -25,13 +29,13 @@ public class FXMLController {
     private URL location;
 
     @FXML // fx:id="boxAnno"
-    private ComboBox<?> boxAnno; // Value injected by FXMLLoader
+    private ComboBox<Integer> boxAnno; // Value injected by FXMLLoader
 
     @FXML // fx:id="boxMese"
-    private ComboBox<?> boxMese; // Value injected by FXMLLoader
+    private ComboBox<Integer> boxMese; // Value injected by FXMLLoader
 
     @FXML // fx:id="boxGiorno"
-    private ComboBox<?> boxGiorno; // Value injected by FXMLLoader
+    private ComboBox<Integer> boxGiorno; // Value injected by FXMLLoader
 
     @FXML // fx:id="btnCreaReteCittadina"
     private Button btnCreaReteCittadina; // Value injected by FXMLLoader
@@ -47,11 +51,76 @@ public class FXMLController {
 
     @FXML
     void doCreaReteCittadina(ActionEvent event) {
-
+    	
+    	this.txtN.clear();
+    	this.txtResult.clear();
+    	
+    	Integer anno = this.boxAnno.getValue();
+    	if(anno == null) {
+    		this.txtResult.setText("selezionare un anno");
+    		return;
+    	}
+    	
+    	this.model.creaGrafo(anno);
+    	
+    	this.txtResult.appendText("GRAFO CREATO: \n#vertici: "+this.model.getNVertici()+"\n");
+    	this.txtResult.appendText("#archi: "+this.model.getNArchi()+"\n");
+    	
+    	for(District d : this.model.getVertici()) {
+    		
+    		this.txtResult.appendText("\nDistretti adiacenti al distretto: "+d.getId()+"\n");
+    		
+    		for(Vicino v : this.model.getVicini(d)) {
+    			this.txtResult.appendText(v.getD().getId()+" " + v.getDist()+"\n");
+    		}
+    		
+    	}
+    	
+    	this.btnSimula.setDisable(false);
     }
 
     @FXML
     void doSimula(ActionEvent event) {
+    	
+    	this.txtResult.clear();
+    	
+    	Integer anno, mese, giorno, N;
+    	
+    	try {
+    		N = Integer.parseInt(txtN.getText());
+    	} catch (NumberFormatException e) {
+        	this.txtResult.clear();
+    		txtResult.appendText("Formato N non corretto\n");
+    		return;
+    	}
+    	
+    	if(N<1 || N>10) {
+        	this.txtResult.clear();
+    		txtResult.appendText("N deve essere compreso tra 1 e 10\n");
+    		return;
+    	}
+    	
+    	anno = boxAnno.getValue();
+    	mese = boxMese.getValue();
+    	giorno = boxGiorno.getValue();
+    	
+    	if(anno == null || mese == null || giorno == null) {
+        	this.txtResult.clear();
+    		txtResult.appendText("Seleziona tutti i campi!\n");
+    		return;
+    	}
+    	
+    	try {
+    		LocalDate.of(anno, mese, giorno);
+    	} catch (DateTimeException e) {
+        	this.txtResult.clear();
+    		txtResult.appendText("Data non corretta\n");
+    		return;
+    	}
+    	
+    	txtResult.appendText("Simulo con " + N + " agenti");
+    	txtResult.appendText("\nCRIMINI MAL GESTITI: " + this.model.simula(anno, mese, giorno, N));
+    	
 
     }
 
@@ -64,10 +133,13 @@ public class FXMLController {
         assert btnSimula != null : "fx:id=\"btnSimula\" was not injected: check your FXML file 'Scene.fxml'.";
         assert txtN != null : "fx:id=\"txtN\" was not injected: check your FXML file 'Scene.fxml'.";
         assert txtResult != null : "fx:id=\"txtResult\" was not injected: check your FXML file 'Scene.fxml'.";
-
+        
     }
     
     public void setModel(Model model) {
     	this.model = model;
+    	this.boxAnno.getItems().addAll(this.model.getAnni());
+    	boxMese.getItems().addAll(this.model.getMesi());
+    	boxGiorno.getItems().addAll(this.model.getGiorni());
     }
 }
